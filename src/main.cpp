@@ -6,12 +6,16 @@
 #include <list>
 #include <algorithm>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 typedef struct RULE {
     std::string ip;
     std::string hostname;
 } *LPRULE;
 
-int IsNote(const std::string &str)
+static int IsNote(const std::string &str)
 {
     if (str.empty())
         return -1;
@@ -29,10 +33,51 @@ int IsNote(const std::string &str)
     return 2;
 }
 
+#if defined(_WIN32)
+static std::string GetHostsFileNameInWindows(std::string default_file_name, bool *bIsSucceded = NULL)
+{
+    if (bIsSucceded)
+        *bIsSucceded = false;
+
+    std::string hosts_file = default_file_name;
+
+    HKEY hKey;
+    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\services\\Tcpip\\Parameters",
+                     0, KEY_READ, &hKey) == ERROR_SUCCESS)
+    {
+        char szBuffer[1024];
+        memset(szBuffer, 0, 1024);
+        DWORD dwBufferSize = sizeof(szBuffer);
+        if (RegQueryValueEx(hKey, "DataBasePath", 0, NULL, (LPBYTE)szBuffer, &dwBufferSize) == ERROR_SUCCESS)
+        {
+            hosts_file = szBuffer;
+
+            if (!ExpandEnvironmentStrings(hosts_file.c_str(), szBuffer, dwBufferSize))
+            {
+                hosts_file = default_file_name;
+            }
+            else
+            {
+                if (bIsSucceded)
+                    *bIsSucceded = true;
+                hosts_file = szBuffer;
+                hosts_file += "\\hosts";
+            }
+        }
+    }
+    return hosts_file;
+}
+#endif
+
 int main(int argc, char *argv[])
 {
     #if defined(_WIN32)
-    std::string file = "C:\\Windows\\System32\\drivers\\etc\\hosts";
+    bool bSucceded;
+    std::string file = GetHostsFileNameInWindows("C:\\Windows\\System32\\drivers\\etc\\hosts", &bSucceded);
+    if (!bSucceded)
+    {
+        std::cout << "Warning! Could not read value from Windows registry. The path to the hosts file is assigned by default.\n";
+    }
     #elif defined(__linux__) || defined(__unix__ )
     std::string file = "/etc/hosts";
     #else
@@ -46,7 +91,7 @@ int main(int argc, char *argv[])
     std::ifstream ifs(file.c_str(), std::ios_base::in | std::ios_base::binary);
     if (!ifs.is_open())
     {
-        std::cerr << "File '" << file.c_str() << "' not found!\n";
+        std::cerr << "Error! File '" << file.c_str() << "' not found.\n";
         return 1;
     }
     else
@@ -58,7 +103,7 @@ int main(int argc, char *argv[])
         char *buff = new (std::nothrow) char[size + 1];
         if (!buff)
         {
-            std::cerr << "Failed to allocate memory\n";
+            std::cerr << "Error! Failed to allocate memory.\n";
             ifs.close();
             return 1;
         }
