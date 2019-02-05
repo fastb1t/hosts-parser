@@ -1,10 +1,15 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <vector>
-#include <map>
 #include <cstring>
+#include <vector>
+#include <list>
 #include <algorithm>
+
+typedef struct RULE {
+    std::string ip;
+    std::string hostname;
+} *LPRULE;
 
 int IsNote(const std::string &str)
 {
@@ -33,6 +38,8 @@ int main(int argc, char *argv[])
     #else
     #error "Unknown compiler"
     #endif
+
+    std::cout << "Path to file: " << file << "\n";
 
     std::string content;
 
@@ -64,8 +71,8 @@ int main(int argc, char *argv[])
         ifs.close();
     }
 
-    std::vector<std::string> lines;
-    std::map<std::string, std::string> rules;
+    std::list<std::string> lines;
+    std::vector<RULE> rules;
 
     size_t pos = -1;
     size_t last_pos = 0;
@@ -100,7 +107,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    for (std::vector<std::string>::const_iterator i = lines.begin(); i < lines.end(); i++)
+    for (std::list<std::string>::const_iterator i = lines.begin(); i != lines.end(); i++)
     {
         std::vector<std::string> words;
         std::istringstream iss(*i);
@@ -113,16 +120,24 @@ int main(int argc, char *argv[])
         {
             for (std::vector<std::string>::const_iterator j = words.begin() + 1; j < words.end(); j++)
             {
-                pos = (*j).find('#', 0);
-                if (pos == std::string::npos)
+                if ((*j)[0] == '#')
+                    break;
+
+                RULE rule;
+                rule.ip = words[0];
+
+                if ((pos = (*j).find('#', 0)) == std::string::npos)
                 {
-                    rules.insert(std::make_pair(*j, words[0]));
+                    rule.hostname = *j;
                 }
                 else
                 {
-                    rules.insert(std::make_pair((*j).substr(0, pos), words[0]));
-                    break;
+                    rule.hostname = (*j).substr(0, pos);
                 }
+                rules.push_back(rule);
+
+                if (pos != std::string::npos)
+                    break;
             }
         }
     }
@@ -134,9 +149,9 @@ int main(int argc, char *argv[])
         std::cout << "Rules:\n";
 
         int counter = 1;
-        for (std::map<std::string, std::string>::const_iterator i = rules.begin(); i != rules.end(); i++)
+        for (std::vector<RULE>::const_iterator i = rules.begin(); i < rules.end(); i++)
         {
-            std::cout << "#" << (counter++) << " [" << i->first << "] -> [" << i->second << "]\n";
+            std::cout << "#" << (counter++) << " [" << (*i).hostname << "] -> [" << (*i).ip << "]\n";
         }
     }
 
