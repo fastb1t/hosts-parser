@@ -64,6 +64,7 @@ static std::string GetHostsFileNameInWindows(std::string default_file_name, bool
                 hosts_file += "\\hosts";
             }
         }
+        RegCloseKey(hKey);
     }
     return hosts_file;
 }
