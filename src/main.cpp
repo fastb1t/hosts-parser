@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
     else
     {
         ifs.seekg(0, std::ios::end);
-        int size = ifs.tellg();
+        int size = static_cast<int>(ifs.tellg());
         ifs.seekg(0, std::ios::beg);
 
         char *buff = new (std::nothrow) char[size + 1];
