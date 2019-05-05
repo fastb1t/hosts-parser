@@ -1,14 +1,19 @@
 # hosts-parser
 
-Build:
+Парсер файла hosts.
 
-	g++ src/main.cpp -o bin/hosts-parser
+## Сборка
 
-Tested on:
+### Linux
+    sh build.sh
 
-	In OS Windows:
-	GCC 4.9.2
-	GCC 6.3.0
+### Windows
+    build.bat
 
-	In OS Linux:
-	GCC 5.4.0
+## Тестировалось в
+    Windows 7 x64
+    Ubuntu 16.04.3 x86
+
+## Тестировалось компиляторами
+    GCC 8.2.0
+    GCC 5.4.0
