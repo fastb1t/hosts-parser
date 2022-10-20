@@ -85,17 +85,24 @@ static std::string GetHostsFileNameInWindows(std::string sDefaultFileName, bool 
 
 int main(int argc, char *argv[])
 {
+
 #if defined(_WIN32)
+
     bool bSucceded;
     std::string file = GetHostsFileNameInWindows("C:\\Windows\\System32\\drivers\\etc\\hosts", &bSucceded);
     if (!bSucceded)
     {
         std::cout << "Warning! Could not read value from Windows registry. The path to the hosts file is assigned by default.\n";
     }
+
 #elif defined(__linux__) || defined(__unix__ )
+
     std::string file = "/etc/hosts";
+
 #else
+
     #error "Unknown OS"
+    
 #endif
 
     std::cout << "Path to file: " << file << "\n";
