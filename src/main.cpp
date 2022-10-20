@@ -18,28 +18,38 @@ typedef struct RULE {
 static int IsNote(const std::string &str)
 {
     if (str.empty())
+    {
         return -1;
+    }
 
     for (std::string::const_iterator i = str.begin(); i < str.end(); i++)
     {
         if (*i == ' ')
+        {
             continue;
+        }
 
         if (*i == '#')
+        {
             return 1;
+        }
         else
+        {
             return 0;
+        }
     }
     return 2;
 }
 
 #if defined(_WIN32)
-static std::string GetHostsFileNameInWindows(std::string default_file_name, bool *bIsSucceded = NULL)
+static std::string GetHostsFileNameInWindows(std::string sDefaultFileName, bool *bIsSucceded = NULL)
 {
     if (bIsSucceded)
+    {
         *bIsSucceded = false;
+    }
 
-    std::string hosts_file = default_file_name;
+    std::string hosts_file = sDefaultFileName;
 
     HKEY hKey;
     if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\services\\Tcpip\\Parameters",
@@ -54,12 +64,15 @@ static std::string GetHostsFileNameInWindows(std::string default_file_name, bool
 
             if (!ExpandEnvironmentStrings(hosts_file.c_str(), szBuffer, dwBufferSize))
             {
-                hosts_file = default_file_name;
+                hosts_file = sDefaultFileName;
             }
             else
             {
                 if (bIsSucceded)
+                {
                     *bIsSucceded = true;
+                }
+
                 hosts_file = szBuffer;
                 hosts_file += "\\hosts";
             }
@@ -72,18 +85,18 @@ static std::string GetHostsFileNameInWindows(std::string default_file_name, bool
 
 int main(int argc, char *argv[])
 {
-    #if defined(_WIN32)
+#if defined(_WIN32)
     bool bSucceded;
     std::string file = GetHostsFileNameInWindows("C:\\Windows\\System32\\drivers\\etc\\hosts", &bSucceded);
     if (!bSucceded)
     {
         std::cout << "Warning! Could not read value from Windows registry. The path to the hosts file is assigned by default.\n";
     }
-    #elif defined(__linux__) || defined(__unix__ )
+#elif defined(__linux__) || defined(__unix__ )
     std::string file = "/etc/hosts";
-    #else
-    #error "Unknown compiler"
-    #endif
+#else
+    #error "Unknown OS"
+#endif
 
     std::cout << "Path to file: " << file << "\n";
 
@@ -118,7 +131,7 @@ int main(int argc, char *argv[])
     }
 
     std::list<std::string> lines;
-    std::vector<RULE> rules;
+    std::vector<RULE*> rules;
 
     size_t pos = -1;
     size_t last_pos = 0;
@@ -135,7 +148,9 @@ int main(int argc, char *argv[])
             std::replace(tmp.begin(), tmp.end(), '\t', ' ');
 
             if (IsNote(tmp) == 0)
+            {
                 lines.push_back(tmp);
+            }
         }
         last_pos = pos + 1;
     }
@@ -149,7 +164,9 @@ int main(int argc, char *argv[])
             std::replace(tmp.begin(), tmp.end(), '\t', ' ');
 
             if (IsNote(tmp) == 0)
+            {
                 lines.push_back(tmp);
+            }
         }
     }
 
@@ -157,8 +174,11 @@ int main(int argc, char *argv[])
     {
         std::vector<std::string> words;
         std::istringstream iss(*i);
+
         while (iss >> tmp)
+        {
             words.push_back(tmp);
+        }
 
         if (words.size() >= 2 &&
             words[0].find('#', 0) == std::string::npos &&
@@ -167,23 +187,30 @@ int main(int argc, char *argv[])
             for (std::vector<std::string>::const_iterator j = words.begin() + 1; j < words.end(); j++)
             {
                 if ((*j)[0] == '#')
-                    break;
-
-                RULE rule;
-                rule.ip = words[0];
-
-                if ((pos = (*j).find('#', 0)) == std::string::npos)
                 {
-                    rule.hostname = *j;
-                }
-                else
-                {
-                    rule.hostname = (*j).substr(0, pos);
-                }
-                rules.push_back(rule);
-
-                if (pos != std::string::npos)
                     break;
+                }
+
+                RULE* rule = new (std::nothrow) RULE;
+                if (rule)
+                {
+                    rule->ip = words[0];
+
+                    if ((pos = (*j).find('#', 0)) == std::string::npos)
+                    {
+                        rule->hostname = *j;
+                    }
+                    else
+                    {
+                        rule->hostname = (*j).substr(0, pos);
+                    }
+                    rules.push_back(rule);
+
+                    if (pos != std::string::npos)
+                    {
+                        break;
+                    }
+                }
             }
         }
     }
@@ -194,10 +221,12 @@ int main(int argc, char *argv[])
     {
         std::cout << "Rules:\n";
 
-        int counter = 1;
-        for (std::vector<RULE>::const_iterator i = rules.begin(); i < rules.end(); i++)
+        size_t counter = 1;
+        for (std::vector<RULE*>::const_iterator it = rules.begin(); it < rules.end(); it++)
         {
-            std::cout << "#" << (counter++) << " [" << (*i).hostname << "] -> [" << (*i).ip << "]\n";
+            std::cout << "#" << (counter++) << " [" << (*it)->hostname << "] -> [" << (*it)->ip << "]\n";
+
+            delete (*it);
         }
     }
 
